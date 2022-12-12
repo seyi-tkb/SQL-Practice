@@ -45,8 +45,19 @@ SELECT id, account_id,
     FROM orders
 LIMIT 10;
 
+SELECT * FROM accounts
+WHERE name LIKE 'C%';    /* a filter for when the name of a customer-company starts with "C" */
+
+SELECT * FROM  accounts
+WHERE name LIKE '%one%';   /* a filter for when the name of a customer-company contains "one" */
+
+SELECT * FROM accounts
+WHERE name LIKE '%s';   /* a filter for when the name of a customer-company ends with "s" */
+
+SELECT name, primary_poc, sales_rep_id 
+    FROM accounts
+WHERE name IN ('Walmart', 'Target', 'Nordstrom')    /* a filter for when the name of a customer-company is "Walmart", "Target", or "Nordstrom" */
 
 
-/*markdown
-
-*/
+SELECT * FROM web_events
+WHERE channel IN ('organic', 'adwords')
