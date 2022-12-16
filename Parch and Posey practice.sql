@@ -59,8 +59,6 @@ SELECT name, primary_poc, sales_rep_id
 WHERE name IN ('Walmart', 'Target', 'Nordstrom');    /* a filter for when the name of a customer-company is "Walmart", "Target", or "Nordstrom" */
 
 
-
-
 SELECT * FROM web_events
 WHERE channel IN ('organic', 'adwords');
 
@@ -97,3 +95,53 @@ SELECT * FROM web_events
 WHERE channel IN ('organic', 'adwords') AND occurred_at BETWEEN '2016-01-01' AND '2017-01-01'   
 /* a filter for when the channel is "organic" or "adwords" and the occurred_at any point in 2016 (note date endpoint tricky) */
 ORDER BY occurred_at DESC;
+
+SELECT id FROM orders
+WHERE gloss_qty > 4000 OR poster_qty > 4000;
+
+SELECT * FROM orders 
+WHERE standard_qty = 0 AND (gloss_qty > 1000 OR poster_qty > 1000);   /* a filter for when the quantity of standard paper is 0, and the quantity of either gloss paper or poster paper is greater than 1000 */
+
+SELECT id, name FROM accounts
+WHERE name LIKE '%ana%' OR name LIKE '%Ana%' AND name NOT LIKE '%eana%';    /* a filter for when the name of a customer-company contains "ana" or "Ana" but does not contain "eana" */ 
+
+SELECT * 
+FROM orders
+JOIN accounts 
+ON orders.account_id = accounts.id;
+
+SELECT standard_qty, gloss_qty, poster_qty, website, primary_poc /* works but it's standard to specify every table a column comes from (orders.standard_qty, accounts.website)*/
+FROM orders
+JOIN accounts
+ON orders.account_id = accounts.id;
+
+
+
+SELECT * FROM web_events
+LIMIT 5;
+
+SELECT acc.primary_poc, web.occurred_at, web.channel, acc.name
+FROM web_events web
+JOIN accounts acc
+ON web.account_id = acc.id
+WHERE acc.name = 'Walmart';
+
+
+
+SELECT reg.name region, rep.name sales_rep, acc.name acccount
+FROM accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+ORDER BY acc.name;
+
+SELECT reg.name AS region, acc.name AS account, 
+       (ord.total_amt_usd/(ord.total + 0.01)) AS unit_price
+FROM orders AS ord
+JOIN accounts AS acc
+ON ord.account_id = acc.id
+JOIN sales_reps AS rep
+ON acc.sales_rep_id = rep.id
+JOIN region AS reg
+ON rep.region_id = reg.id;
