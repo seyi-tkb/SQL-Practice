@@ -59,6 +59,9 @@ SELECT name, primary_poc, sales_rep_id
 WHERE name IN ('Walmart', 'Target', 'Nordstrom');    /* a filter for when the name of a customer-company is "Walmart", "Target", or "Nordstrom" */
 
 
+
+
+
 SELECT * FROM web_events
 WHERE channel IN ('organic', 'adwords');
 
@@ -117,6 +120,13 @@ ON orders.account_id = accounts.id;
 
 
 
+
+
+/*markdown
+## Aliases
+*/
+
+
 SELECT * FROM web_events
 LIMIT 5;
 
@@ -125,6 +135,9 @@ FROM web_events web
 JOIN accounts acc
 ON web.account_id = acc.id
 WHERE acc.name = 'Walmart';
+
+
+
 
 
 
@@ -145,3 +158,240 @@ JOIN sales_reps AS rep
 ON acc.sales_rep_id = rep.id
 JOIN region AS reg
 ON rep.region_id = reg.id;
+
+/*markdown
+## Joins 
+*/
+
+SELECT rep.name sales_rep, reg.name region, acc.name account
+FROM accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE reg.name = 'Midwest'
+ORDER BY acc.name;
+
+SELECT rep.name sales_rep, reg.name region, acc.name account
+FROm accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE rep.name LIKE 'S%' AND reg.name = 'Midwest'
+ORDER BY acc.name;
+
+SELECT reg.name region, rep.name sales_rep, acc.name account
+FROM accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE rep.name LIKE '% K%' AND reg.name = 'Midwest'
+ORDER BY acc.name;
+
+SELECT acc.name account, reg.name region, 
+       (total_amt_usd/(total + 0.01)) unit_price
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE standard_qty > 100;
+
+SELECT acc.name account, reg.name region, 
+       (total_amt_usd/(total + 0.01)) unit_price
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE standard_qty > 100 AND poster_qty > 50
+ORDER BY unit_price;
+
+SELECT acc.name account, reg.name region, 
+       (total_amt_usd/(total + 0.01)) unit_price
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+WHERE standard_qty > 100 AND poster_qty > 50
+ORDER BY unit_price DESC;
+
+SELECT DISTINCT acc.name account, web.channel channel_used
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+WHERE acc.id = 1001;
+
+SELECT ord.occurred_at, acc.name account, ord.total total_order,
+       ord.total_amt_usd total_amt_used
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+WHERE ord.occurred_at BETWEEN '2015-01-01' AND  '2016-01-01'
+ORDER BY ord.occurred_at;
+
+/*markdown
+## Aggregations
+
+*/
+
+SELECT COUNT (*)
+FROM orders;
+
+SELECT COUNT (id) FROM orders;
+
+SELECT SUM (poster_qty) AS total_poster_sold
+FROM orders;
+
+SELECT sUM (standard_qty) AS total_standard_sold
+FROM orders;
+
+SELECT SUM (total_amt_usd) AS total_dollar_sales
+FROM orders;
+
+SELECT (standard_amt_usd + gloss_amt_usd) AS total_standard_gloss
+FROM orders;
+
+SELECT SUM (standard_amt_usd) / SUM (standard_qty) AS standard_price_per_unit
+FROM orders;
+
+SELECT * FROM orders
+LIMIT 5;
+
+SELECT MIN (occurred_at) AS earliest_order
+FROM orders;
+
+SELECT occurred_at AS earliest_order_date
+FROM orders
+ORDER BY occurred_at
+LIMIT 1;
+
+SELECT * FROM web_events
+LIMIT 5;
+
+SELECT MAX (occurred_at) AS latest_web_event
+FROM web_events;
+
+SELECT occurred_at AS latest_web_event_date
+FROM web_events
+ORDER BY occurred_at DESC
+LIMIT 1;
+
+SELECT AVG (standard_amt_usd) AS average_standard_price,
+       AVG (gloss_amt_usd) AS average_gloss_price,
+       AVG (poster_amt_usd) AS average_poster_price,
+       AVG (standard_qty) AS average_standard_qty,
+       AVG (gloss_qty) AS average_gloss_qty,
+       AVG (poster_qty) AS average_poster_qty
+FROM orders;
+
+SELECT *
+FROM (SELECT total_amt_usd
+      FROM orders
+      ORDER BY total_amt_usd
+      LIMIT 3457) AS Table1
+ORDER BY total_amt_usd DESC
+LIMIT 2;
+
+SELECT MIN (occurred_at) 
+FROM orders;
+
+SELECT acc.name account, ord.occurred_at
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+ORDER BY occurred_at
+LIMIT 1;
+
+SELECT acc.name account, SUM (ord.total_amt_usd) total_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY acc.name
+
+SELECT MAX (occurred_at) FROM web_events LIMIT 1;
+
+SELECT acc.name account, web.channel channel, web.occurred_at date
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+ORDER BY web.occurred_at DESC
+LIMIT 1;
+
+SELECT channel, COUNT (channel) AS total_times_used
+FROM web_events
+GROUP BY channel
+ORDER BY channel;
+
+SELECT ACC.primary_poc, web.occurred_at
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+ORDER BY web.occurred_at
+LIMIT 1;
+
+SELECT acc.name account, MIN (ord.total_amt_usd) min_order
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY acc.name
+ORDER BY MIN (ord.total_amt_usd);
+
+SELECT reg.name region, COUNT (rep.*) total_sales_reps
+FROM sales_reps rep
+JOIN region reg
+ON rep.region_id = reg.id
+GROUP BY reg.name
+ORDER BY COUNT (rep.*);
+
+SELECT acc.name account, 
+       AVG (standard_qty) avg_standard_qty,
+       AVG (gloss_qty) avg_gloss_qty,
+       AVG (poster_qty) avg_poster_qty
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY account;
+
+SELECT acc.name account, 
+       AVG (standard_amt_usd) avg_standard_price, 
+       AVG (gloss_amt_usd) avg_gloss_price, 
+       AVG (poster_amt_usd) avg_poster_price
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY acc.name;
+
+SELECT rep.name sales_rep, web.channel, COUNT (web.channel) times_used
+FROM sales_reps rep
+JOIN accounts acc
+ON acc.sales_rep_id = rep.id
+JOIN web_events web
+ON web.account_id = acc.id
+GROUP BY rep.name, web.channel
+ORDER BY rep.name, times_used DESC;
+
+SELECT reg.name region,
+       web.channel channel,
+       COUNT (web.channel) times_used
+FROM web_events web
+JOIN accounts acc
+ON web.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+GROUP BY region, channel
+ORDER BY times_used DESC 
+
+
+
