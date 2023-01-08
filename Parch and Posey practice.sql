@@ -62,6 +62,11 @@ WHERE name IN ('Walmart', 'Target', 'Nordstrom');    /* a filter for when the na
 
 
 
+
+
+
+
+
 SELECT * FROM web_events
 WHERE channel IN ('organic', 'adwords');
 
@@ -122,6 +127,11 @@ ON orders.account_id = accounts.id;
 
 
 
+
+
+
+
+
 /*markdown
 ## Aliases
 */
@@ -135,6 +145,11 @@ FROM web_events web
 JOIN accounts acc
 ON web.account_id = acc.id
 WHERE acc.name = 'Walmart';
+
+
+
+
+
 
 
 
@@ -241,6 +256,7 @@ ORDER BY ord.occurred_at;
 
 /*markdown
 ## Aggregations
+
 
 */
 
@@ -391,7 +407,705 @@ ON acc.sales_rep_id = rep.id
 JOIN region reg
 ON rep.region_id = reg.id
 GROUP BY region, channel
-ORDER BY times_used DESC 
+ORDER BY times_used DESC;
+
+SELECT DISTINCT acc.name account, reg.name
+FROM accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id;
+
+SELECT acc.name account, COUNT (reg.name) regions
+    FROM accounts acc
+    JOIN sales_reps rep
+    ON acc.sales_rep_id = rep.id
+    JOIN region reg
+    ON rep.region_id = reg.id
+    GROUP BY account;
+
+SELECT s.name, COUNT (a.*) AS total_accounts
+FROM accounts a 
+JOIN sales_reps s
+ON a.sales_rep_id = s.id
+GROUP BY s.name
+ORDER BY total_accounts;
+
+
+
+
+SELECT DISTINCT id, name
+FROM sales_reps;
+
+SELECT rep.name sales_rep, COUNT (acc.name) accounts_managed
+FROM accounts acc
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+GROUP BY sales_rep
+HAVING COUNT (acc.name) > 5
+ORDER BY accounts_managed, sales_rep;
+
+
+
+
+
+
+SELECT acc.name account, COUNT (ord.*) as orders_made
+FROM orders ord
+JOIN accounts acc
+On ord.account_id = acc.id
+GROUP BY account
+HAVING COUNT (ord.*) > 20
+ORDER BY orders_made;
+
+SELECT acc.name account, COUNT (ord.*) as orders_made
+FROM orders ord
+JOIN accounts acc
+On ord.account_id = acc.id
+GROUP BY account
+ORDER BY orders_made DESC
+LIMIT 1;
+
+SELECT acc.name account, SUM (total_amt_usd) total_ord_amt
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY account
+HAVING SUM (total_amt_usd) > 30000
+ORDER BY total_ord_amt;
+
+SELECT acc.name account, SUM (total_amt_usd) total_ord_amt
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY account
+HAVING SUM (total_amt_usd) < 1000
+ORDER BY total_ord_amt;
+
+SELECT acc.name account, SUM (total_amt_usd) total_ord_amt
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY account
+ORDER BY total_ord_amt DESC
+LIMIT 1;
+
+SELECT acc.name account, SUM (total_amt_usd) total_ord_amt
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY account
+ORDER BY total_ord_amt
+LIMIT 1;
+
+SELECT acc.name account, web.channel channel, COUNT (web.*) times_used
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+GROUP BY account, channel
+HAVING channel = 'facebook' AND COUNT (web.*) > 6
+ORDER BY times_used;
+
+
+
+
+
+
+SELECT acc.name account, web.channel channel, COUNT (web.*) times_used
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+GROUP BY account, channel
+HAVING channel = 'facebook'
+ORDER BY times_used DESC
+LIMIT 1;
+
+
+
+
+
+
+SELECT web.channel channel, COUNT (acc.*)
+FROM accounts acc
+JOIN web_events web
+ON web.account_id = acc.id
+GROUP BY channel
+ORDER BY COUNT (acc.*) DESC
+LIMIT 1;
+
+SELECT DATE_PART ('year', occurred_at) year_occurred, 
+       SUM (total_amt_usd) year_sales
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+
+
+
+
+SELECT DATE_TRUNC ('month', occurred_at) month_occurred, 
+       SUM (total_amt_usd) sales_usd
+FROM orders
+
+GROUP BY 1
+ORDER BY 1 DESC;
+
+SELECT DATE_PART ('month', occurred_at) month_occurred, 
+       SUM (total_amt_usd) month_sales
+FROM orders
+WHERE occurred_at BETWEEN '2014-01-01' AND '2017-01-01'
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT DATE_PART ('year', occurred_at) year_occurred, 
+       COUNT (*) year_orders
+FROM orders
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT DATE_PART ('month', occurred_at) month_occurred, 
+       COUNT (*) month_orders
+FROM orders
+WHERE occurred_at BETWEEN '2014-01-01' AND '2017-01-01'
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT DATE_TRUNC ('month', ord.occurred_at) month_occurred, SUM (ord.gloss_amt_usd) gloss_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+WHERE acc.name = 'Walmart'
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;
+
+SELECT occurred_at, total_amt_usd
+FROM orders
+ORDER BY 1 DESC;
+
+SELECT id, account_id, total_amt_usd, 
+  CASE WHEN total_amt_usd >= 3000 THEN 'large'  
+       ELSE'small'
+       END AS order_level
+FROM orders;
+
+SELECT CASE WHEN total >= 2000 THEN 'at_least_2000'
+            WHEN total >= 1000 AND total < 2000 THEN 'between_1000_and_2000'
+            ELSE 'less_than_1000'
+            END AS order_catgories,
+            COUNT (*) category_orders
+FROM orders
+GROUP BY 1
+ORDER BY 1 DESC;
+
+SELECT acc.name account, SUM (ord.total_amt_usd) order_amount , 
+CASE WHEN SUM (ord.total_amt_usd) > 200000 THEN 'level_1'
+     WHEN SUM (ord.total_amt_usd) BETWEEN 100000 AND 200000 THEN 'level_2'
+     ELSE 'level_3'
+     END AS account_level
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT acc.name account, SUM (ord.total_amt_usd) order_amount , 
+  CASE WHEN SUM (ord.total_amt_usd) > 200000 THEN 'level_1'
+       WHEN SUM (ord.total_amt_usd) BETWEEN 100000 AND 200000 THEN 'level_2'
+       ELSE 'level_3'
+       END AS account_level
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+WHERE ord.occurred_at > '2015-12-31'
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT rep.name sales_rep, COUNT (ord.*) orders_attended, 
+  CASE WHEN COUNT (ord.*) > 200 THEN 'top' ELSE 'not' END AS performing_sales_rep
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+GROUP BY 1
+ORDER BY 2 DESC;
+
+SELECT rep.name sales_rep, COUNT (ord.*) orders_attended, SUM (ord.total_amt_usd) total_sales,
+  CASE WHEN COUNT (ord.*) > 200 OR SUM (ord.total_amt_usd) > 750000 THEN 'top' 
+       WHEN (COUNT (ord.*) BETWEEN 150 AND 200) OR (SUM (ord.total_amt_usd) BETWEEN 500000 AND 750000) THEN 'middle'
+       ELSE 'low' END AS performing_sales_rep
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+GROUP BY 1
+ORDER BY 3 DESC;
+
+SELECT channel, AVG (events)
+FROM (  SELECT DATE_TRUNC ('day', occurred_at) date, channel, COUNT(channel) events
+        FROM web_events
+        GROUP BY 1, 2
+        ORDER BY 1) sub
+GROUP BY 1
+ORDER BY 1;
+
+SELECT DATE_TRUNC ('day', occurred_at) date, channel, COUNT(channel) events
+FROM web_events
+GROUP BY 1, 2
+ORDER BY 3 DESC
+
+SELECT DATE_TRUNC ('month', MIN (occurred_at))
+FROM orders
+
+SELECT *
+FROM orders
+WHERE DATE_TRUNC ('month', occurred_at) = ( SELECT DATE_TRUNC ('month', MIN (occurred_at))
+                                            FROM orders)
+
+SELECT AVG (standard_qty) avg_standard_qty,
+       AVG (gloss_qty) avg_gloss_qty,
+       AVG (poster_qty) avg_poster_qty,
+       SUM (total_amt_usd) total_sales
+FROM (  SELECT *
+        FROM orders
+        WHERE DATE_TRUNC ('month', occurred_at) = ( SELECT DATE_TRUNC ('month', MIN (occurred_at))
+                                            FROM orders)) sub_2;
+
+/*markdown
+1. Provide the name of the sales_rep in each region with the largest amount of total_amt_usd sales.
+*/
+
+SELECT reg.name region, rep.name sales_rep, SUM (ord.total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep 
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1, 2
+        ORDER BY 1, 3 DESC
+
+SELECT region, MAX (total_sales) max_sales
+FROM (SELECT reg.name region, rep.name sales_rep, SUM (ord.total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep 
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1, 2
+        ORDER BY 1, 3 DESC) sub
+GROUP BY 1;
+
+/*markdown
+A table that utilizes 2 subqueries on the FROM and JOIN statement.
+*/
+
+SELECT sub_1.region, sub_2.sales_rep, sub_1.max_sales
+FROM (SELECT region, MAX (total_sales) max_sales
+      FROM (SELECT reg.name region, rep.name sales_rep, SUM (ord.total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep 
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1, 2
+        ORDER BY 1, 3 DESC) sub
+      GROUP BY 1) sub_1
+JOIN (SELECT reg.name region, rep.name sales_rep, SUM (ord.total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep 
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1, 2
+        ORDER BY 1, 3 DESC) sub_2
+ON sub_1.max_sales = sub_2.total_sales
+
+/*markdown
+2. For the region with the largest (sum) of sales total_amt_usd, how many total (count) orders were placed?
+*/
+
+SELECT reg.name region, SUM (total_amt_usd) total_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;
+
+SELECT reg.name region, COUNT (*) total_orders
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+JOIN sales_reps rep
+ON acc.sales_rep_id = rep.id
+JOIN region reg
+ON rep.region_id = reg.id
+GROUP BY 1
+
+SELECT sub_1.region, sub_1.total_sales, sub_2.total_orders
+FROM (SELECT reg.name region, SUM (total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 1) sub_1
+JOIN (SELECT reg.name region, COUNT (*) total_orders
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        JOIN sales_reps rep
+        ON acc.sales_rep_id = rep.id
+        JOIN region reg
+        ON rep.region_id = reg.id
+        GROUP BY 1) sub_2
+ON sub_1.region = sub_2.region
+
+
+
+/*markdown
+3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
+*/
+
+SELECT acc.name, SUM (standard_qty) total_standard_qty, SUM (total) total_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;
+
+SELECT acc.name account
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+HAVING SUM (ord.total) >= (SELECT total_sales
+                          FROM (SELECT acc.name, SUM (standard_qty) total_standard_qty, SUM (total) total_sales
+                                FROM orders ord
+                                JOIN accounts acc
+                                ON ord.account_id = acc.id
+                                GROUP BY 1
+                                ORDER BY 2 DESC
+                                LIMIT 1) sub)
+ORDER BY SUM (ord.total) DESC;
+
+SELECT COUNT (*)
+FROM ( SELECT acc.name account
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        GROUP BY 1
+        HAVING SUM (ord.total) > ( SELECT total_sales
+                                    FROM (SELECT acc.name, SUM (standard_qty) total_standard_qty, SUM (total) total_sales
+                                            FROM orders ord
+                                            JOIN accounts acc
+                                            ON ord.account_id = acc.id
+                                            GROUP BY 1
+                                            ORDER BY 2 DESC
+                                            LIMIT 1) sub)) sub_out
+
+/*markdown
+4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
+*/
+
+SELECT acc.name account, SUM (total_amt_usd) total_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 1;
+
+SELECT acc.name account, channel, COUNT (*) events
+FROM accounts acc
+JOIN web_events web
+ON acc.id = web.account_id
+GROUP BY 1, 2
+ORDER BY 1, 2;
+
+SELECT s1.account, s2.channel, s2.events
+FROM (  SELECT acc.name account, SUM (total_amt_usd) total_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 1) s1
+LEFT JOIN (     SELECT acc.name account, channel, COUNT (*) events
+                FROM accounts acc
+                JOIN web_events web
+                ON acc.id = web.account_id
+                GROUP BY 1, 2
+                ORDER BY 1, 2) s2
+ON s1.account = s2.account;
+
+/*markdown
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+*/
+
+
+
+SELECT acc.name account, SUM (total_amt_usd)
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10;
+
+SELECT AVG(tot_spent)
+FROM (SELECT a.id, a.name, SUM(o.total_amt_usd) tot_spent
+      FROM orders o
+      JOIN accounts a
+      ON a.id = o.account_id
+      GROUP BY a.id, a.name
+      ORDER BY 3 DESC
+       LIMIT 10) temp;
+
+/*markdown
+or
+*/
+
+SELECT acc.name account, AVG (total_amt_usd)
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+
+SELECT s1.account, s2.avg average_sales
+FROM (SELECT acc.name account, SUM (total_amt_usd)
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        GROUP BY 1
+        ORDER BY 2 DESC
+        LIMIT 10) s1
+LEFT JOIN (     SELECT acc.name account, AVG (total_amt_usd)
+                FROM orders ord
+                JOIN accounts acc
+                ON ord.account_id = acc.id
+                GROUP BY 1) s2
+ON s1.account = s2.account 
+
+
+
+/*markdown
+6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders.
+*/
+
+SELECT acc.name account, AVG (total_amt_usd) average_sales
+FROM orders ord
+JOIN accounts acc
+ON ord.account_id = acc.id
+GROUP BY 1
+
+SELECT AVG (total_amt_usd)
+FROM orders
+
+SELECT *
+FROM (  SELECT acc.name account, AVG (total_amt_usd) average_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        GROUP BY 1) sub
+WHERE average_sales > (SELECT AVG (total_amt_usd) 
+                        FROM orders);
+
+
+
+SELECT AVG (average_sales)
+FROM (SELECT *
+FROM (  SELECT acc.name account, AVG (total_amt_usd) average_sales
+        FROM orders ord
+        JOIN accounts acc
+        ON ord.account_id = acc.id
+        GROUP BY 1) sub
+WHERE average_sales > (SELECT AVG (total_amt_usd) 
+                        FROM orders)
+) sub_out;
+
+
+
+/*markdown
+WITH command for Subqueries
+*/
+
+/*markdown
+1. Provide the name of the sales_rep in each region with the largest amount of total_amt_usd sales.
+*/
+
+WITH sales AS ( SELECT reg.name region, rep.name sales_rep, SUM (total_amt_usd) total_sales
+                FROM orders ord
+                JOIN accounts acc
+                ON ord.account_id = acc.id
+                JOIN sales_reps rep
+                ON acc.sales_rep_id = rep.id
+                JOIN region reg
+                ON rep.region_id = reg.id
+                GROUP BY 1, 2
+                ORDER BY 1, 3 DESC),
+
+       max AS ( SELECT region, MAX (total_sales) max_sales
+                FROM sales
+                GROUP BY 1)
+
+
+SELECT max.region, sales.sales_rep, max.max_sales
+FROM sales
+JOIN max
+ON sales.total_sales = max.max_sales
+
+
+
+
+/*markdown
+2. For the region with the largest sales total_amt_usd, how many total orders were placed?
+*/
+
+WITH reg_sales AS ( SELECT reg.name region, SUM (total_amt_usd) total_sales
+                    FROM orders ord
+                    JOIN accounts acc
+                    ON ord.account_id = acc.id
+                    JOIN sales_reps rep
+                    ON acc.sales_rep_id = rep.id
+                    JOIN region reg
+                    ON rep.region_id = reg.id
+                    GROUP BY 1
+                    ORDER BY 2 DESC
+                    LIMIT 1),
+
+    reg_orders AS ( SELECT reg.name region, COUNT (ord.*)
+                    FROM orders ord
+                    JOIN accounts acc
+                    ON ord.account_id = acc.id
+                    JOIN sales_reps rep
+                    ON acc.sales_rep_id = rep.id
+                    JOIN region reg
+                    ON rep.region_id = reg.id
+                    GROUP BY 1)
+
+SELECT reg_sales.region, reg_sales.total_sales, reg_orders.count orders
+FROM reg_sales
+JOIN reg_orders
+ON reg_sales.region = reg_orders.region
+
+/*markdown
+3. How many accounts had more total purchases than the account name which has bought the most standard_qty paper throughout their lifetime as a customer?
+*/
+
+WITH s1 AS (SELECT acc.name account, SUM (standard_qty) standard_qty, SUM (total) total_sales
+            FROM orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            GROUP BY 1
+            ORDER BY 2 DESC
+            LIMIT 1),
+
+     s2 AS (SELECT total_sales
+            FROM s1),
+
+     s3 AS (SELECT acc.name
+            FROM  orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            GROUP BY 1
+            HAVING SUM (ord.total) > ( SELECT total_sales FROM s2))
+
+SELECT COUNT (*)
+FROM s3;
+
+
+
+/*markdown
+4. For the customer that spent the most (in total over their lifetime as a customer) total_amt_usd, how many web_events did they have for each channel?
+*/
+
+WITH s1 AS (SELECT acc.name account, SUM (total_amt_usd) total_sales
+            FROM orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            GROUP BY 1
+            ORDER BY 2 DESC
+            LIMIT 1),
+
+     s2 AS (SELECT acc.name account, channel, COUNT (*) events
+            FROM accounts acc
+            JOIN web_events web
+            ON acc.id = web.account_id
+            GROUP BY 1, 2
+            ORDER BY 1, 2)
+
+SELECT s2.*
+FROM s1
+LEFT JOIN s2
+ON s1.account = s2.account;
+
+
+
+/*markdown
+5. What is the lifetime average amount spent in terms of total_amt_usd for the top 10 total spending accounts?
+*/
+
+WITH s1 AS (SELECT acc.name account, SUM (total_amt_usd) average_sales
+            FROM orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            GROUP BY 1
+            ORDER BY 2 DESC
+            LIMIT 10)
+
+SELECT AVG(s1.average_sales)
+FROM s1;
+
+/*markdown
+6. What is the lifetime average amount spent in terms of total_amt_usd, including only the companies that spent more per order, on average, than the average of all orders.
+*/
+
+WITH s1 AS (SELECT acc.name account, AVG(ord.total_amt_usd) avg_sales
+            FROM orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            JOIN web_events web
+            ON acc.id = web.account_id
+            GROUP BY 1),
+
+     s2 AS (SELECT acc.name account
+            FROM orders ord
+            JOIN accounts acc
+            ON ord.account_id = acc.id
+            JOIN web_events web
+            ON acc.id = web.account_id
+            GROUP BY 1
+            HAVING AVG (ord.total_amt_usd) > (SELECT AVG (total_amt_usd) FROM orders)),
+
+     s3 AS (SELECT s2.account, s1.avg_sales average_sales
+            FROM s2
+            LEFT JOIN s1
+            ON s1.account = s2.account)
+
+SELECT AVG (s3.average_sales)
+FROM s3
+
+
 
 
 
